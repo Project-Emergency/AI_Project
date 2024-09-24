@@ -2,28 +2,27 @@ package com.example.AI_Project.AI_Project.Controller;
 
 import com.example.AI_Project.AI_Project.DTO.HospitalDTO;
 import com.example.AI_Project.AI_Project.Service.HospitalService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/hospitals")
+@RequiredArgsConstructor
+@RequestMapping("/api/hospitals")
 public class HospitalController {
 
-    @Autowired
-    private HospitalService hospitalService;
+    private final HospitalService hospitalService;
 
-    @GetMapping("/data")
-    public ResponseEntity<String> getMedicalData() {
-        String medicalData = hospitalService.getMedicalData();
-        return ResponseEntity.ok(medicalData);
+    @GetMapping("/db")
+    public List<HospitalDTO> getHospitalsFromDB() {
+        return hospitalService.getAllHospitals();
     }
 
-    @GetMapping
-    public ResponseEntity<List<HospitalDTO>> getAllHospitals() {
-        List<HospitalDTO> hospitals = hospitalService.getAllHospitals();
-        return ResponseEntity.ok(hospitals);
+    @GetMapping("/api")
+    public List<HospitalDTO> getHospitalsFromAPI() {
+        return hospitalService.fetchHospitalsFromAPI();
     }
 }
