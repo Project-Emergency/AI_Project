@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Hospital Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+<div class="container">
+    <h1 class="title">
+        <i class="fas fa-hospital-alt"></i> 어디가 불편하신가요?
+    </h1>
+
+    <div class="input-container">
+        <textarea id="question" class="question-box" rows="4" placeholder="여기에 질문을 작성하세요..."></textarea>
+
+        <button id="submit-btn" class="submit-btn">
+            <i class="fas fa-paper-plane"></i> 질문 제출하기
+        </button>
+
+        <div id="answer" class="answer-box">
+            백 연결 후 AI 답변 들어올 영역
+        </div>
+    </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
