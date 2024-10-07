@@ -1,8 +1,6 @@
 package com.example.AI_Project.AI_Project.Entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.*;
 
@@ -13,11 +11,14 @@ import lombok.*;
 @Setter
 @Builder
 public class HospitalEntity {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String name;
-    private String address;
-    private String phoneNumber;
-    private boolean emergencyRoomAvailable;
+    private String hpid; // 병원 ID
+    private String dutyName; // 병원 이름
+    private String dutyAddr; // 주소
+    private String dutyTel1; // 대표 전화
+    private String dutyEmcls; // 응급의료기관코드
+    private Double wgs84Lon; // 병원 경도
+    private Double wgs84Lat; // 병원 위도
 }
+

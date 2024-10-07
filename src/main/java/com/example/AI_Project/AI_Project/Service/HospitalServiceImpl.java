@@ -3,11 +3,9 @@ package com.example.AI_Project.AI_Project.Service;
 import com.example.AI_Project.AI_Project.DTO.HospitalDTO;
 import com.example.AI_Project.AI_Project.Entity.HospitalEntity;
 import com.example.AI_Project.AI_Project.Repository.HospitalRepository;
-import com.example.AI_Project.AI_Project.Service.HospitalService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,34 +14,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HospitalServiceImpl implements HospitalService {
 
-    private final HospitalRepository hospitalRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private HospitalRepository hospitalRepository;
 
-    @Value("${spring.api.hospital.endpoint}")
-    private String hospitalApiEndpoint;
-
-    @Value("${spring.api.hospital.encoding-key}")
-    private String encodingKey;
-
+    // 병원 전체 조회 (최대 10개로 제한)
     @Override
     public List<HospitalDTO> getAllHospitals() {
-        List<HospitalEntity> hospitals = hospitalRepository.findAll();
-        return hospitals.stream()
-                .map(HospitalDTO::entityToDTO)
+        List<HospitalEntity> entities = hospitalRepository.findAll();
+        return entities.stream()
+                .map(HospitalDTO::entityToDTO)  // DTO 변환
+                .limit(10)  // 트래픽에 따라서 최대 10개로 제한
                 .collect(Collectors.toList());
     }
 
+    // 키워드로 병원 정보 조회
     @Override
-    public List<HospitalDTO> fetchHospitalsFromAPI() {
-        String url = hospitalApiEndpoint + "?serviceKey=" + encodingKey;
-
-        // RestTemplate를 사용하여 API 호출
-        HospitalDTO[] response = restTemplate.getForObject(url, HospitalDTO[].class);
-
-        if (response != null) {
-            return List.of(response);
-        } else {
-            return List.of();  // 데이터가 없으면 빈 리스트 반환
-        }
+    public List<HospitalDTO> searchHospitalsByKeyword(String keyword) {
+        List<HospitalEntity> entities = hospitalRepository.findByDutyNameContaining(keyword);
+        return entities.stream()
+                .map(HospitalDTO::entityToDTO)  // DTO 변환
+                .collect(Collectors.toList());
     }
 }
