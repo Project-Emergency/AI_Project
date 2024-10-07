@@ -16,6 +16,7 @@ public class HospitalDTO {
     private String dutyEmcls; // 응급의료기관코드
     private Double wgs84Lon; // 병원 경도
     private Double wgs84Lat; // 병원 위도
+    private int dutyEryn;
 
     public static HospitalDTO entityToDTO(HospitalEntity hospitalEntity) {
         return new HospitalDTO(
@@ -25,11 +26,12 @@ public class HospitalDTO {
                 hospitalEntity.getDutyTel1(),
                 hospitalEntity.getDutyEmcls(),
                 hospitalEntity.getWgs84Lon(),
-                hospitalEntity.getWgs84Lat()
+                hospitalEntity.getWgs84Lat(),
+                hospitalEntity.getDutyEryn()
         );
     }
 
     public HospitalEntity dtoToEntity() {
-        return new HospitalEntity(hpid, dutyName, dutyAddr, dutyTel1, dutyEmcls, wgs84Lon, wgs84Lat);
+        return new HospitalEntity(hpid, dutyName, dutyAddr, dutyTel1, dutyEmcls, wgs84Lon, wgs84Lat, dutyEryn);
     }
 }

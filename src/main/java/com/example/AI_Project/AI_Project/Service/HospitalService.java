@@ -6,5 +6,4 @@ import java.util.List;
 
 public interface HospitalService {
     List<HospitalDTO> getAllHospitals();
-    List<HospitalDTO> searchHospitalsByKeyword(String keyword);
 }

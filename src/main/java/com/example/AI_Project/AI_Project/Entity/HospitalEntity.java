@@ -20,5 +20,6 @@ public class HospitalEntity {
     private String dutyEmcls; // 응급의료기관코드
     private Double wgs84Lon; // 병원 경도
     private Double wgs84Lat; // 병원 위도
+    private int dutyEryn; // 진료 가능 여부 (1: 진료 가능, 0: 진료 불가)
 }
 

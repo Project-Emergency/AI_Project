@@ -15,13 +15,9 @@ public class HospitalController {
     @Autowired
     private HospitalService hospitalService;
 
+    // 병원 전체 조회
     @GetMapping("/hospitals")
     public List<HospitalDTO> getAllHospitals() {
         return hospitalService.getAllHospitals();
-    }
-
-    @GetMapping("/hospitals/search")
-    public List<HospitalDTO> searchHospitals(@RequestParam String keyword) {
-        return hospitalService.searchHospitalsByKeyword(keyword);
     }
 }
