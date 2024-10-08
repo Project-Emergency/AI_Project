@@ -3,118 +3,113 @@ package com.example.AI_Project.AI_Project.Service;
 import com.example.AI_Project.AI_Project.DTO.HospitalDTO;
 import com.example.AI_Project.AI_Project.Entity.HospitalEntity;
 import com.example.AI_Project.AI_Project.Repository.HospitalRepository;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.w3c.dom.NodeList;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import org.xml.sax.InputSource;
 
-import java.util.ArrayList;
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.net.URI;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class HospitalServiceImpl implements HospitalService {
 
-    private final HospitalRepository hospitalRepository;
-    private final RestTemplate restTemplate;
-    private final XmlMapper xmlMapper = new XmlMapper();
+    @Autowired
+    private HospitalRepository hospitalRepository;
 
-    // application.yml 파일에서 API 설정값 주입
+    private static final Logger log = LoggerFactory.getLogger(HospitalServiceImpl.class);
+
+    private final RestTemplate restTemplate;
+
+    @Autowired
+    public HospitalServiceImpl(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
     @Value("${spring.api.hospital.endpoint}")
-    private String hospitalApiEndpoint;
+    private String endpoint;
 
     @Value("${spring.api.hospital.encoding-key}")
     private String encodingKey;
 
-    // 병원 전체 조회 및 데이터베이스 저장 (최대 10개로 제한)
     @Override
-    public List<HospitalDTO> getAllHospitals() {
-        List<HospitalEntity> hospitalEntities = new ArrayList<>();
-        int pageNo = 1;
-        int numOfRows = 100; // 한 번에 조회할 데이터 수 (최대값으로 설정)
+    @Transactional
+    public List<HospitalDTO> getAllHospitals(String Q0, String Q1) {
+        try {
+            // URL 생성 (인코딩 키를 직접 쿼리 문자열로 추가)
+            String url = UriComponentsBuilder.fromHttpUrl(endpoint)
+                    .queryParam("serviceKey", encodingKey)
+                    .queryParam("ORD", "NAME")
+                    .queryParam("pageNo", "1")
+                    .queryParam("numOfRows", "100")
+                    .queryParam("Q0", Q0)
+                    .queryParam("Q1", Q1)
+                    .build()
+                    .toUriString();
 
-        // 필드값 변수 설정
-        String serviceKey = encodingKey; // 서비스 키
-        String q0 = "대구"; // 시도
-        String q1 = "달서"; // 시군구동
-        String ord = "NAME"; // 정렬 기준
-
-        while (true) {
-            // API 호출 URL 설정
-            String url = hospitalApiEndpoint +
-                    "?serviceKey=" + serviceKey +
-                    "&ORD=" + ord +
-                    "&pageNo=" + pageNo +
-                    "&numOfRows=" + numOfRows +
-                    "&Q0=" + q0 +
-                    "&Q1=" + q1;
-
-            // URL 로깅을 위해 작성
-            log.info(url);
+            // URL 확인을 위한 로그 출력
+            log.info("Request URL: {}", url);
 
             // API 호출
-            String response = restTemplate.getForObject(url, String.class);
-            log.info("API 응답 메세지 : {}", response); // 응답 로깅
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
-            // 응답을 파싱하여 HospitalEntity로 변환
-            List<HospitalEntity> entities = parseApiResponse(response);
+            // 응답을 수동으로 디코딩
+            byte[] bytes = response.getBody().getBytes(StandardCharsets.ISO_8859_1);
+            String decodedResponse = new String(bytes, StandardCharsets.UTF_8);
+            log.info("Decoded response: {}", decodedResponse);
 
-            // 조회된 병원 정보가 없으면 종료
-            if (entities.isEmpty()) {
-                log.info("더 이상 데이터를 찾을 수 없습니다. 검색을 종료합니다.");
-                break;
+            // XML 파싱
+            var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                    .parse(new InputSource(new StringReader(decodedResponse)));
+
+            var xpath = XPathFactory.newInstance().newXPath();
+            var nodeList = (NodeList) xpath.evaluate("//item", doc, XPathConstants.NODESET);
+
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                var node = nodeList.item(i);
+                HospitalEntity entity = new HospitalEntity();
+                entity.setHpid(xpath.evaluate("hpid", node));
+                entity.setDutyName(xpath.evaluate("dutyName", node));
+                entity.setDutyAddr(xpath.evaluate("dutyAddr", node));
+                entity.setDutyTel1(xpath.evaluate("dutyTel1", node));
+                entity.setWgs84Lat(xpath.evaluate("wgs84Lat", node));
+                entity.setWgs84Lon(xpath.evaluate("wgs84Lon", node));
+
+                hospitalRepository.save(entity);
+                log.info("Saved hospital data : {}", entity);
             }
 
-            // 데이터베이스에 저장
-            for (HospitalEntity entity : entities) {
-                hospitalRepository.save(entity); // 각 병원 정보를 데이터베이스에 저장
-            }
-
-            // 데이터베이스에 저장한 병원 목록을 hospitalEntities에 추가
-            hospitalEntities.addAll(entities);
-
-            // 다음 페이지로 이동
-            pageNo++;
+        } catch (Exception e) {
+            log.error("Error parsing XML response", e);
         }
 
-        // HospitalEntity를 HospitalDTO로 변환 후 반환
-        return hospitalEntities.stream()
-                .map(HospitalDTO::entityToDTO)
-                .collect(Collectors.toList());
+        // 저장된 데이터 반환
+        return hospitalRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
     }
 
-    // XML 응답을 HospitalEntity 리스트로 변환하는 메서드
-    private List<HospitalEntity> parseApiResponse(String response) {
-        List<HospitalEntity> hospitalEntities = new ArrayList<>();
-        try {
-            // XML 응답을 파싱하여 병원 정보 목록으로 변환
-            XmlResponse xmlResponse = xmlMapper.readValue(response, XmlResponse.class);
-
-            // 병원 정보를 HospitalEntity로 변환
-            if (xmlResponse.getBody() != null && xmlResponse.getBody().getItems() != null) {
-                for (HospitalItem item : xmlResponse.getBody().getItems()) {
-                    HospitalEntity entity = new HospitalEntity();
-                    entity.setHpid(item.getHpid());
-                    entity.setDutyName(item.getDutyName());
-                    entity.setDutyAddr(item.getDutyAddr());
-                    entity.setDutyTel1(item.getDutyTel1());
-                    entity.setDutyEmcls(item.getDutyEmcls());
-                    entity.setWgs84Lon(item.getWgs84Lon());
-                    entity.setWgs84Lat(item.getWgs84Lat());
-                    entity.setDutyEryn(item.getDutyEryn()); // 진료 가능 여부
-
-                    hospitalEntities.add(entity);
-                }
-            } else {
-                log.warn("응답에서 병원 항목을 찾을 수 없습니다");
-            }
-        } catch (Exception e) {
-            log.error("API 응답 구문 분석 오류", e);
-        }
-        return hospitalEntities;
+    private HospitalDTO toDTO(HospitalEntity entity) {
+        HospitalDTO dto = new HospitalDTO();
+        dto.setHpid(entity.getHpid());
+        dto.setDutyName(entity.getDutyName());
+        dto.setDutyAddr(entity.getDutyAddr());
+        dto.setDutyTel1(entity.getDutyTel1());
+        dto.setWgs84Lat(entity.getWgs84Lat());
+        dto.setWgs84Lon(entity.getWgs84Lon());
+        return dto;
     }
 }

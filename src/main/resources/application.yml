@@ -1,4 +1,13 @@
 spring:
+  web:
+    charset: UTF-8
+    servlet:
+      encoding:
+        charset: UTF-8
+        force: true
+
+  main:
+    allow-bean-definition-overriding: true
   application:
     name: AI_Project
 
@@ -10,7 +19,7 @@ spring:
   jpa:
     show-sql: false
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: false
